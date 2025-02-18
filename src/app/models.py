@@ -70,7 +70,6 @@ class Message:
         
         # Save to Cosmos DB
         try:
-            print("Container " + container)
             container.upsert_item(item)
             print(f"Message {self.id} saved to Cosmos DB.")
         except Exception as e:
