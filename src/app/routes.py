@@ -1,5 +1,5 @@
-from flask import Blueprint, jsonify, render_template, request, render_template
-from models import Session, Message
+from flask import Blueprint, jsonify, render_template, request
+from .models import Session, Message
 
 app = Blueprint('app', __name__)
 
@@ -28,13 +28,13 @@ def session_detail(session_id):
     
     return render_template('session_detail.html', session= session,messages= messages,session_id = session_id)
 
-@app.route('/generate_response/<session_id>', methods=['POST'])
-def generate_response(session_id):
+@app.route('/generate_response/', methods=['POST'])
+def generate_response():
     data = request.json
     user_input = data.get('user_input')
+    print(user_input)
 
-    message = Message(session_id=session_id, prompt=user_input)
-    
+    message = Message(session_id="123", prompt=user_input)
     message.generate_completion()
 
     # Save prompt tokens
@@ -43,3 +43,24 @@ def generate_response(session_id):
     message.save()
 
     return jsonify({'response': message.completion})
+
+@app.route('/generate_response/<session_id>', methods=['POST'])
+def generate_response_session(session_id):
+    data = request.json
+    user_input = data.get('user_input')
+    print(session_id)
+
+    message = Message(session_id=session_id, prompt=user_input)
+    message.generate_completion()
+
+    # Save prompt tokens
+    message.prompt_tokens = len(user_input.split())
+
+    message.save()
+
+    return jsonify({'response': message.completion})
+
+@app.route('/clear_cache', methods=['POST'])
+def clear_cache():
+    # Clear the cache
+    return jsonify({'message': 'Cache cleared.'})

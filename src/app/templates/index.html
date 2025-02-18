@@ -3,14 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatGPT Home</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    <title>Chat Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .message-container {
+            margin: 20px 0;
+            height: 400px;
+            overflow-y: scroll;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .message.user {
+            background-color: #e0f7fa;
+            text-align: left;
+        }
+
+        .message.assistant {
+            background-color: #e8f5e9;
+            text-align: left;
+        }
+
+        .tokens {
+            font-size: 12px;
+            color: #999;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: none;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to the NoSQL ChatGPT Application</h1>
-    <p>This is where everything starts.</p>
-    <form action="{{ url_for('app.create_session') }}" method="post">
-        <button type="submit">Create Session</button>
-    </form>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>North American Lakes</h2>
+            <button id="clear-cache">Clear Cache</button>
+        </div>
+
+        <div class="message-container" id="message-container">
+            <!-- Chat messages will appear here -->
+        </div>
+
+        <form id="message-form">
+            <textarea id="prompt" rows="3" placeholder="Enter your prompt here..."></textarea>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+<script>
+        document.getElementById('message-form').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevent form from reloading the page
+            
+            const prompt = document.getElementById('prompt').value;
+            const messageContainer = document.getElementById('message-container');
+
+            if (!prompt.trim()) {
+                alert('Please enter a prompt');
+                return;
+            }
+
+            // Display user message
+            const userMessageElement = document.createElement('div');
+            userMessageElement.classList.add('message', 'user');
+            userMessageElement.innerHTML = `<p>${prompt}</p><div class="tokens">Tokens: Calculating...</div>`;
+            messageContainer.appendChild(userMessageElement);
+            messageContainer.scrollTop = messageContainer.scrollHeight; // Auto-scroll to bottom
+
+            // Clear input field
+            document.getElementById('prompt').value = '';
+
+            try {
+                const response = await fetch("{{ url_for('app.generate_response', session_id=session.session_id) }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ user_input: prompt })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Display assistant's response
+                    const assistantMessageElement = document.createElement('div');
+                    assistantMessageElement.classList.add('message', 'assistant');
+                    assistantMessageElement.innerHTML = `<p>${data.response}</p><div class="tokens">Tokens: ${data.tokens || 0}</div>`;
+                    messageContainer.appendChild(assistantMessageElement);
+
+                    // Update user message token count (Assuming token count is available from the response)
+                    userMessageElement.querySelector('.tokens').textContent = `Tokens: ${data.user_tokens || 0}`;
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        // Handle Clear Cache button click
+        document.getElementById('clear-cache').addEventListener('click', async function() {
+            try {
+                const response = await fetch("{{ url_for('app.clear_cache') }}", { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } });
+                if (response.ok) {
+                    alert('Cache cleared!');
+                } else {
+                    alert('Error clearing cache');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    </script>
 </body>
 </html>

@@ -1,13 +1,17 @@
 from flask import Flask
 from azure.cosmos import CosmosClient
 from routes import app as routes_blueprint
-from config import Config
+# from .config import Config
 
 
-app = Flask(__name__)
+app = Flask(__name_,  
+            template_folder='templates',
+            static_folder='static'
+)
 
 # Register the blueprint from routes.py
 app.register_blueprint(routes_blueprint)
+
 
 # Initialize Cosmos DB Client
 client = CosmosClient(Config.COSMOS_ENDPOINT, credential=Config.COSMOS_KEY)

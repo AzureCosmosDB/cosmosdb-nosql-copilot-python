@@ -1,12 +1,16 @@
-from datetime import datetime, timezone
 import uuid
-from azure.cosmos import CosmosClient, exceptions
-from config import Config
+from datetime import datetime, timezone
+from azure.cosmos import CosmosClient, PartitionKey, exceptions
+from .config import Config
+from .services import AIService
+
 
 # Initialize Cosmos DB Client
 client = CosmosClient(Config.COSMOS_ENDPOINT, credential=Config.COSMOS_KEY)
-database = client.get_database_client(Config.COSMOS_DATABASE)
-container = database.get_container_client(Config.COSMOS_CONTAINER)
+database = client.create_database_if_not_exists(Config.COSMOS_DATABASE)
+container = database.create_container_if_not_exists("chat",
+                                                    partition_key=PartitionKey('/id')
+                                                    )
 
 # CacheItem Model
 class CacheItem:
@@ -15,9 +19,10 @@ class CacheItem:
         self.vectors = vectors
         self.prompts = prompts
         self.completion = completion
-        self.created_at = datetime.now(timezone.utc).isoformat() # Timestamp for cache invalidation purposes
+        self.created_at = datetime.now(timezone.utc).isoformat()
 
     def save(self):
+        """Store completions in the cache"""
         item = {
             'id': self.id,
             'vectors': self.vectors,
@@ -48,9 +53,10 @@ class Message:
         self.completion = completion
         self.completion_tokens = completion_tokens
 
+
     def __str__(self):
         return f'Message {self.id} in Session {self.session.id} - Prompt: {self.prompt[:50]}'
-    
+ 
     def save(self):
         item = {
             'id': self.id,
@@ -61,19 +67,19 @@ class Message:
             'completion': self.completion,
             'completion_tokens': self.completion_tokens
         }
-               # Save to Cosmos DB
+        
+        # Save to Cosmos DB
         try:
+            print("Container " + container)
             container.upsert_item(item)
             print(f"Message {self.id} saved to Cosmos DB.")
         except Exception as e:
             print(f"Error saving Message {self.id}: {e}")
 
     def generate_completion(self):
-        from services import AIService
         ai_service = AIService()
         self.completion = ai_service.get_completion(self.prompt)
         self.completion_tokens = len(self.completion.split())  # Set completion tokens based on generated completion
-    
 
 # Session Model
 class Session:
@@ -81,6 +87,10 @@ class Session:
         self.session_id = session_id or str(uuid.uuid4())
         self.tokens = tokens or 0
         self.name = name
+        self.container = database.create_container_if_not_exists("chat",
+                                                                partition_key=PartitionKey('/id')
+                                                                )
+
 
     def __str__(self):
         return f'Session {self.session_id} - {self.name}'
@@ -110,8 +120,17 @@ class Session:
 
         # Insert or update the session item in the container
         try:
-            container.create_item(session_item)  # Create a new session item
+            self.container.create_item(session_item)  # Create a new session item
         except exceptions.CosmosHttpResponseError as e:
             # If the item already exists, you might want to update it
             if e.status_code == 409:  # Conflict
-                container.upsert_item(session_item)  # Upsert (insert or update)   
+                self.container.upsert_item(session_item)  # Upsert (insert or update)   
+
+    
+# def check_cache(prompt):
+#     return CacheItem.objects.filter(prompts=prompt).first()
+
+# def save_to_cache(vectors, prompt, completion):
+#     cache_item = CacheItem(vectors=vectors, prompts=prompt, completion=completion)
+#     cache_item.save()
+#     return cache_item
