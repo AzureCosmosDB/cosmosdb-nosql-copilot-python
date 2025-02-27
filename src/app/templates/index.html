@@ -79,13 +79,86 @@
         button:hover {
             background-color: #0056b3;
         }
+
+        /* Side panel styles */
+        .side-panel {
+            width: 250px;
+            background-color: #333;
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .side-panel.open {
+            transform: translateX(0);
+        }
+
+        .side-panel-header {
+            padding: 20px;
+            background-color: #444;
+            text-align: center;
+        }
+
+        .side-panel-content {
+            padding: 20px;
+        }
+
+        .side-panel-content ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .side-panel-content li {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #555;
+        }
+
+        .side-panel-content li:hover {
+            background-color: #555;
+        }
+
+        .toggle-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .toggle-button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
+    <div class="side-panel" id="side-panel">
+        <div class="side-panel-header">
+            <h2>Chat Sessions</h2>
+        </div>
+        <div class="side-panel-content">
+            <ul id="session-list">
+                <!-- Session list will be populated here -->
+            </ul>
+        </div>
+    </div>
+    
+    <button class="toggle-button" id="toggle-button">☰</button>
+
 
     <div class="chat-container">
         <div class="chat-header">
             <h2>North American Lakes</h2>
+            <button id="new-chat-session">+ New Chat</button>
             <button id="clear-cache">Clear Cache</button>
         </div>
 
@@ -99,69 +172,135 @@
         </form>
     </div>
 
-<script>
-        document.getElementById('message-form').addEventListener('submit', async function(event) {
-            event.preventDefault(); // Prevent form from reloading the page
-            
-            const prompt = document.getElementById('prompt').value;
-            const messageContainer = document.getElementById('message-container');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed2');
+            document.getElementById('message-form').addEventListener('submit', async function(event) {
+                event.preventDefault(); // Prevent form from reloading the page
+                
+                const prompt = document.getElementById('prompt').value;
+                const messageContainer = document.getElementById('message-container');
 
-            if (!prompt.trim()) {
-                alert('Please enter a prompt');
-                return;
-            }
-
-            // Display user message
-            const userMessageElement = document.createElement('div');
-            userMessageElement.classList.add('message', 'user');
-            userMessageElement.innerHTML = `<p>${prompt}</p><div class="tokens">Tokens: Calculating...</div>`;
-            messageContainer.appendChild(userMessageElement);
-            messageContainer.scrollTop = messageContainer.scrollHeight; // Auto-scroll to bottom
-
-            // Clear input field
-            document.getElementById('prompt').value = '';
-
-            try {
-                const response = await fetch("{{ url_for('app.generate_response', session_id=session.session_id) }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({ user_input: prompt })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Display assistant's response
-                    const assistantMessageElement = document.createElement('div');
-                    assistantMessageElement.classList.add('message', 'assistant');
-                    assistantMessageElement.innerHTML = `<p>${data.response}</p><div class="tokens">Tokens: ${data.tokens || 0}</div>`;
-                    messageContainer.appendChild(assistantMessageElement);
-
-                    // Update user message token count (Assuming token count is available from the response)
-                    userMessageElement.querySelector('.tokens').textContent = `Tokens: ${data.user_tokens || 0}`;
-                } else {
-                    alert('Error: ' + data.error);
+                if (!prompt.trim()) {
+                    alert('Please enter a prompt');
+                    return;
                 }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        });
 
-        // Handle Clear Cache button click
-        document.getElementById('clear-cache').addEventListener('click', async function() {
-            try {
-                const response = await fetch("{{ url_for('app.clear_cache') }}", { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } });
-                if (response.ok) {
-                    alert('Cache cleared!');
-                } else {
-                    alert('Error clearing cache');
+                // Display user message
+                const userMessageElement = document.createElement('div');
+                userMessageElement.classList.add('message', 'user');
+                userMessageElement.innerHTML = `<p>${prompt}</p><div class="tokens">Tokens: Calculating...</div>`;
+                messageContainer.appendChild(userMessageElement);
+                messageContainer.scrollTop = messageContainer.scrollHeight; // Auto-scroll to bottom
+
+                // Clear input field
+                document.getElementById('prompt').value = '';
+
+                try {
+                    const response = await fetch("{{ url_for('app.generate_response') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ user_input: prompt })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Display assistant's response
+                        const assistantMessageElement = document.createElement('div');
+                        assistantMessageElement.classList.add('message', 'assistant');
+                        assistantMessageElement.innerHTML = `<p>${data.response}</p><div class="tokens">Tokens: ${data.tokens || 0}</div>`;
+                        messageContainer.appendChild(assistantMessageElement);
+
+                        // Update user message token count (Assuming token count is available from the response)
+                        userMessageElement.querySelector('.tokens').textContent = `Tokens: ${data.user_tokens || 0}`;
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
                 }
-            } catch (error) {
-                console.error('Error:', error);
+            });
+
+            // Handle Clear Cache button click
+            document.getElementById('clear-cache').addEventListener('click', async function() {
+                try {
+                    const response = await fetch("{{ url_for('app.clear_cache') }}", { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } });
+                    if (response.ok) {
+                        alert('Cache cleared!');
+                    } else {
+                        alert('Error clearing cache');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+
+            // Handle New Chat Session 
+            document.getElementById('new-chat-session').addEventListener('click', async function() {
+                try {
+                    const response = await fetch("{{ url_for('app.create_session')}}", { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } });
+                    // if (response.ok) {
+                    //     alert('Cache cleared!');
+                    // } else {
+                    //     alert('Error clearing cache');
+                    // }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            });
+
+            // Toggle side panel
+            document.getElementById('toggle-button').addEventListener('click', function() {
+                document.getElementById('side-panel').classList.toggle('open');
+            });
+
+            // Fetch and display chat sessions
+            async function fetchSessions() {
+                console.log('Fetching sessions...');
+                try {
+                    const response = await fetch("{{ url_for('app.get_sessions') }}");
+                    const sessions = await response.json();
+                    const sessionList = document.getElementById('session-list');
+                    sessionList.innerHTML = '';
+
+                    sessions.forEach(session => {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `Session ID: ${session.session_id}`;
+                        listItem.addEventListener('click', function() {
+                            loadSession(session.session_id);
+                        });
+                        sessionList.appendChild(listItem);
+                    });
+                } catch (error) {
+                    console.error('Error fetching sessions:', error);
+                }
             }
+
+            // Load chat session
+            async function loadSession(session_id) {
+                try {
+                    const response = await fetch(`{{ url_for('app.session_detail', session_id='') }}${session_id}`);
+                    const data = await response.json();
+                    const messageContainer = document.getElementById('message-container');
+                    messageContainer.innerHTML = '';
+
+                    data.messages.forEach(message => {
+                        const messageElement = document.createElement('div');
+                        messageElement.classList.add('message', message.role);
+                        messageElement.innerHTML = `<p>${message.content}</p><div class="tokens">Tokens: ${message.tokens || 0}</div>`;
+                        messageContainer.appendChild(messageElement);
+                    });
+                } catch (error) {
+                    console.error('Error loading session:', error);
+                }
+            }
+
+            // Fetch sessions on page load
+            fetchSessions();
         });
     </script>
 </body>

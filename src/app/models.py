@@ -44,6 +44,7 @@ class CacheItem:
 
 # Message Model
 class Message:
+    """A Message is defined by a unique ID, a session ID, a prompt, and a completion."""
     def __init__(self, session_id, prompt, prompt_tokens=0, completion='', completion_tokens=0):
         self.id = str(uuid.uuid4())
         self.session_id = session_id
@@ -78,30 +79,31 @@ class Message:
     def generate_completion(self):
         ai_service = AIService()
         self.completion = ai_service.get_completion(self.prompt)
-        self.completion_tokens = len(self.completion.split())  # Set completion tokens based on generated completion
+        self.completion_tokens = len(self.completion.split())
 
 # Session Model
-class Session:
-    def __init__(self, session_id=None, tokens=None, name='New Chat'):
+class ChatSession:
+    """A Session is defined by a unique ID and a name, and it contains multiple messages and keeps track of the total token count."""
+    def __init__(self, session_id=None, tokens=None, session_name='New Chat'):
         self.session_id = session_id or str(uuid.uuid4())
         self.tokens = tokens or 0
-        self.name = name
+        self.session_name = session_name
         self.container = database.create_container_if_not_exists("chat",
                                                                 partition_key=PartitionKey('/id')
                                                                 )
-
+        print(self.session_id)
 
     def __str__(self):
-        return f'Session {self.session_id} - {self.name}'
+        return f'Session {self.session_id} - {self.session_name}'
 
     def add_message(self, prompt, prompt_tokens, completion='', completion_tokens=0):
-        # Create and save the message
+        """Add a message to the Session and update the token count."""
         message = Message(
             session_id=self.session_id,
             prompt=prompt,
             prompt_tokens=prompt_tokens,
             completion=completion,
-            completion_tokens=completion_tokens
+            completion_tokens=completion_tokens,
         )
         message.save()
 
@@ -109,12 +111,19 @@ class Session:
         self.tokens += prompt_tokens + completion_tokens
         self.save()  # Save the session after updating tokens
 
+    @staticmethod
+    def get_all_sessions():
+        """Get all sessions from the database."""
+        query = "SELECT DISTINCT c.id, c.name FROM c WHERE IS_DEFINED(c.name)"
+        sessions = list(container.query_items(query, enable_cross_partition_query=True))
+        return sessions
+
     def save(self):
         # Create a session item to save
         session_item = {
             "id": self.session_id,
             "tokens": self.tokens,
-            "name": self.name
+            "name": self.session_name
         }
 
         # Insert or update the session item in the container
