@@ -157,7 +157,7 @@
 
     <div class="chat-container">
         <div class="chat-header">
-            <h2>North American Lakes</h2>
+            <h2 id="session-name">North American Lakes</h2>
             <button id="new-chat-session">+ New Chat</button>
             <button id="clear-cache">Clear Cache</button>
         </div>
@@ -242,11 +242,6 @@
             document.getElementById('new-chat-session').addEventListener('click', async function() {
                 try {
                     const response = await fetch("{{ url_for('app.create_session')}}", { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } });
-                    // if (response.ok) {
-                    //     alert('Cache cleared!');
-                    // } else {
-                    //     alert('Error clearing cache');
-                    // }
                 } catch (error) {
                     console.error('Error:', error);
                 }
@@ -276,7 +271,7 @@
 
                         // Load the first sesssion
                         if (index === 0) {
-                            loadSession(session.id);
+                            loadSession(session.id, session.name);
                         }
                     });
                 } catch (error) {
@@ -285,12 +280,13 @@
             }
 
             // Load chat session
-            async function loadSession(session_id) {
+            async function loadSession(session_id, session_name) {
                 try {
                     const response = await fetch(`{{ url_for('app.session_detail', session_id='') }}${session_id}`);
                     const data = await response.json();
                     const messageContainer = document.getElementById('message-container');
                     messageContainer.innerHTML = '';
+                    document.getElementById('session-name').textContent = session_name;
 
                     data.messages.forEach(message => {
                         const messageElement = document.createElement('div');
