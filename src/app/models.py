@@ -99,6 +99,14 @@ class ChatSession:
         query = "SELECT DISTINCT c.id, c.name FROM c WHERE IS_DEFINED(c.name)"
         sessions = list(container.query_items(query, enable_cross_partition_query=True))
         return sessions
+    
+    def get_messages(self):
+        """Get all messages for this session."""
+        query = "SELECT c.session_id, c.prompt, c.completion, c.completion_tokens, c.prompt_tokens FROM c WHERE c.session_id = @session_id"
+        parameters = [{"name": "@session_id", "value": self.session_id}]
+        messages = list(container.query_items(query, parameters=parameters, enable_cross_partition_query=True))
+        return [Message(**message) for message in messages]
+
 
     def save(self):
         # Create a session item to save
