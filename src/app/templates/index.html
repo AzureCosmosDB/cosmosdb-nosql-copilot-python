@@ -254,7 +254,6 @@
 
             // Fetch and display chat sessions
             async function fetchSessions() {
-                console.log('Fetching sessions...');
                 try {
                     const response = await fetch("{{ url_for('app.get_sessions') }}");
                     const sessions = await response.json();

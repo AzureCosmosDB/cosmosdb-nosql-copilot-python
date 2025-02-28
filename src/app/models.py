@@ -157,10 +157,10 @@ class CacheItem(Message):
         """Clear the cache"""
         try:
             for item in cache_container.query_items(
-                query="SELECT * FROM c WHERE c.session_id = @session_id",
-                parameters=[{"name": "@session_id", "value": self.session_id}],
+                query="SELECT * FROM c",
+                enable_cross_partition_query=True,
             ):
-                cache_container.delete_item(item, partition_key=self.id)
+                cache_container.delete_item(item)
             print(f"CacheItem {self.id} cleared from Cosmos DB.")
 
         except Exception as e:
