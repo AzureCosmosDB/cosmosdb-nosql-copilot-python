@@ -151,7 +151,7 @@
             </ul>
         </div>
     </div>
-    
+
     <button class="toggle-button" id="toggle-button">☰</button>
 
 
@@ -269,9 +269,9 @@
 
                     sessions.forEach(session => {
                         const listItem = document.createElement('li');
-                        listItem.textContent = `Session ID: ${session.session_id}`;
+                        listItem.textContent = `${session.name}`;
                         listItem.addEventListener('click', function() {
-                            loadSession(session.session_id);
+                            loadSession(session.id);
                         });
                         sessionList.appendChild(listItem);
                     });
@@ -290,9 +290,16 @@
 
                     data.messages.forEach(message => {
                         const messageElement = document.createElement('div');
-                        messageElement.classList.add('message', message.role);
-                        messageElement.innerHTML = `<p>${message.content}</p><div class="tokens">Tokens: ${message.tokens || 0}</div>`;
+                        messageElement.classList.add('message', 'user');
+                        messageElement.innerHTML = `<p>${message.prompt}</p><div class="tokens">Tokens: ${message.prompt_tokens || 0}</div>`;
                         messageContainer.appendChild(messageElement);
+
+                        if (message.completion) {
+                            const completionElement = document.createElement('div');
+                            completionElement.classList.add('message', 'assistant');
+                            completionElement.innerHTML = `<p>${message.completion}</p><div class="tokens">Tokens: ${message.completion_tokens || 0}</div>`;
+                            messageContainer.appendChild(completionElement);
+                        }
                     });
                 } catch (error) {
                     console.error('Error loading session:', error);

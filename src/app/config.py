@@ -5,10 +5,10 @@ import os
 
 class Config:
     COSMOS_ENDPOINT = os.environ.get('COSMOS_ENDPOINT', 'your-cosmos-db-endpoint')
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key')
     COSMOS_KEY = os.environ.get('COSMOS_KEY', 'your-cosmos-db-key')
     COSMOS_DATABASE = os.environ.get('COSMOS_DATABASE', 'CosmosCopilotPythonDB')
     AOAI_COMPLETION_DEPLOYMENT = os.environ.get('AOAI_COMPLETION_DEPLOYMENT')
     AOAI_KEY = os.environ.get('AOAI_KEY')
     AOAI_ENDPOINT = os.environ.get('AOAI_ENDPOINT')
     API_VERSION = '2024-02-01'
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key')
