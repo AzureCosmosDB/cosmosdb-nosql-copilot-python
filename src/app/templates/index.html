@@ -174,7 +174,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM fully loaded and parsed2');
             document.getElementById('message-form').addEventListener('submit', async function(event) {
                 event.preventDefault(); // Prevent form from reloading the page
                 
@@ -267,13 +266,18 @@
                     const sessionList = document.getElementById('session-list');
                     sessionList.innerHTML = '';
 
-                    sessions.forEach(session => {
+                    sessions.forEach((session, index) => {
                         const listItem = document.createElement('li');
                         listItem.textContent = `${session.name}`;
                         listItem.addEventListener('click', function() {
                             loadSession(session.id);
                         });
                         sessionList.appendChild(listItem);
+
+                        // Load the first sesssion
+                        if (index === 0) {
+                            loadSession(session.id);
+                        }
                     });
                 } catch (error) {
                     console.error('Error fetching sessions:', error);
